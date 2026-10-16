@@ -1,0 +1,24 @@
+# Core
+confluent-kafka==2.6.1
+pydantic>=2.11.0,<3
+python-dotenv==1.0.1
+
+# Database
+psycopg[binary]==3.2.4
+
+# Data / EDA (already installed)
+pandas==3.0.6
+numpy==2.2.5
+matplotlib==3.11.2
+
+# Logging
+structlog==25.3.0
+
+# Code quality
+ruff==0.11.8
+black==25.1.0
+mypy==1.15.0
+
+# Testing
+pytest==8.3.5
+pytest-cov==6.1.0

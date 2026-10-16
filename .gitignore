@@ -1,0 +1,14 @@
+venv/
+data/
+kafka-data/
+grafana-data/
+.env
+*.pid
+__pycache__/
+*.py[cod]
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
