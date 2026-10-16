@@ -1,0 +1,3 @@
+event_type,events,units,event_share_%,meaning
+INBOUND,8543,119849,1.69,customer return (cancellation)
+OUTBOUND,496179,5806066,98.31,sale

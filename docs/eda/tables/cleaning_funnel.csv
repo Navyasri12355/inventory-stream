@@ -1,0 +1,7 @@
+step,rows_after,rows_removed,pct_of_raw
+Rows in CSV,1033036,0,100.0
+Rule 1: product StockCode only,1027056,5980,99.42
+Rule 2: UnitPrice > 0 and Quantity != 0,1021128,5928,98.85
+Rule 3: keep missing CustomerID (nothing removed),1021128,0,98.85
+Rule 4: valid sale or return only,1021128,0,98.85
+Rule 5: top 500 SKUs by rows,504722,516406,48.86

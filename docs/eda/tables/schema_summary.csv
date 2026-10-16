@@ -1,0 +1,9 @@
+column,type,meaning,missing,missing_%,unique,example
+Invoice,str,Invoice number; a leading 'C' marks a cancellation,0,0.0,53628,489434
+StockCode,str,Product (SKU) code,0,0.0,5304,85048
+Description,str,Product name,4279,0.41,5651,15CM CHRISTMAS GLASS BALL 20 LIGHTS
+Quantity,int64,Units per line; negative on cancellations and write-offs,0,0.0,1057,12
+InvoiceDate,datetime64[us],"Invoice date and time (minute resolution, naive UK local time)",0,0.0,47635,2009-12-01 07:45:00
+UnitPrice,float64,Price per unit in pounds sterling,0,0.0,2807,6.95
+CustomerID,float64,Customer identifier (missing for many rows),235151,22.76,5942,13085.0
+Country,str,Customer's country,0,0.0,43,United Kingdom

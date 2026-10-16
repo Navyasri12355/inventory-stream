@@ -1,0 +1,2 @@
+sku_warehouse_days,p50_units,p90_units,p95_units,p99_units,max_units,days_over_3x_pair_mean_%,median_active_days_per_key
+322215,6.0,36.0,62.0,194.0,10800,5.89,196.0

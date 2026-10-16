@@ -1,0 +1,2 @@
+distinct_timestamps,median_events_per_timestamp,p95,p99,max,events_sharing_a_timestamp_%
+38097,8.0,42.0,90.0,337,98.9
