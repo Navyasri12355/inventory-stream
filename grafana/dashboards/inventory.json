@@ -1,0 +1,297 @@
+{
+  "__inputs": [],
+  "__requires": [
+    { "type": "datasource", "id": "postgres", "name": "PostgreSQL", "version": "1.0.0" }
+  ],
+  "annotations": { "list": [] },
+  "description": "Real-Time Warehouse Inventory Event Analytics — live pipeline dashboard",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "id": 100,
+      "title": "📦 Stock Levels",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "timescaledb_main" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "fillOpacity": 10 },
+          "unit": "short",
+          "min": 0
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 1 },
+      "id": 1,
+      "options": { "tooltip": { "mode": "multi" } },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "timescaledb_main" },
+          "rawSql": "SELECT\n  ts AS time,\n  warehouse_id || ':' || sku AS metric,\n  stock\nFROM stock_levels\nWHERE $__timeFilter(ts)\n  AND sku IN (SELECT sku FROM sku_catalog ORDER BY sku LIMIT 5)\nORDER BY time",
+          "refId": "A",
+          "format": "time_series"
+        }
+      ],
+      "title": "Stock Level Over Time (top 5 SKUs)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "timescaledb_main" },
+      "fieldConfig": {
+        "defaults": { "unit": "short", "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [
+            { "color": "red", "value": null },
+            { "color": "yellow", "value": 50 },
+            { "color": "green", "value": 200 }
+          ]}
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 1 },
+      "id": 2,
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background" },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "timescaledb_main" },
+          "rawSql": "SELECT\n  warehouse_id || ':' || sku AS metric,\n  stock AS \"Stock\"\nFROM (\n  SELECT DISTINCT ON (warehouse_id, sku)\n    warehouse_id, sku, stock\n  FROM stock_levels\n  ORDER BY warehouse_id, sku, ts DESC\n) latest\nORDER BY stock ASC\nLIMIT 10",
+          "refId": "A",
+          "format": "table"
+        }
+      ],
+      "title": "Current Stock — Lowest 10 Keys",
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 },
+      "id": 101,
+      "title": "🪟 Window Metrics",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "timescaledb_main" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "fillOpacity": 5 },
+          "unit": "short"
+        },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "outbound" }, "properties": [{ "id": "color", "value": { "fixedColor": "#e05f5f", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "inbound" }, "properties": [{ "id": "color", "value": { "fixedColor": "#73bf69", "mode": "fixed" } }] }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 10 },
+      "id": 3,
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "timescaledb_main" },
+          "rawSql": "SELECT\n  window_start AS time,\n  SUM(outbound) AS outbound,\n  SUM(inbound)  AS inbound\nFROM window_metrics\nWHERE $__timeFilter(window_start)\n  AND window_type = 'tumbling'\nGROUP BY window_start\nORDER BY window_start",
+          "refId": "A",
+          "format": "time_series"
+        }
+      ],
+      "title": "Tumbling Window — Inbound vs Outbound (all keys)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "timescaledb_main" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "fillOpacity": 5 },
+          "unit": "short"
+        }
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 10 },
+      "id": 4,
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "timescaledb_main" },
+          "rawSql": "SELECT\n  window_start AS time,\n  SUM(outbound) AS outbound,\n  SUM(inbound)  AS inbound\nFROM window_metrics\nWHERE $__timeFilter(window_start)\n  AND window_type = 'sliding'\nGROUP BY window_start\nORDER BY window_start",
+          "refId": "A",
+          "format": "time_series"
+        }
+      ],
+      "title": "Sliding Window — Inbound vs Outbound (all keys)",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 18 },
+      "id": 102,
+      "title": "🚨 Alerts",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "timescaledb_main" },
+      "fieldConfig": {
+        "defaults": { "unit": "short" },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "severity" }, "properties": [
+            { "id": "custom.width", "value": 80 },
+            { "id": "mappings", "value": [
+              { "type": "value", "options": { "critical": { "text": "🔴 critical", "index": 0 }, "warning": { "text": "🟡 warning", "index": 1 }, "info": { "text": "🔵 info", "index": 2 } } }
+            ]}
+          ]},
+          { "matcher": { "id": "byName", "options": "ts" }, "properties": [{ "id": "custom.width", "value": 175 }] }
+        ]
+      },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 19 },
+      "id": 5,
+      "options": { "sortBy": [{ "displayName": "ts", "desc": true }] },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "timescaledb_main" },
+          "rawSql": "SELECT\n  ts,\n  warehouse_id,\n  sku,\n  alert_type,\n  severity,\n  message\nFROM alerts\nWHERE $__timeFilter(ts)\nORDER BY ts DESC\nLIMIT 100",
+          "refId": "A",
+          "format": "table"
+        }
+      ],
+      "title": "Recent Alerts",
+      "type": "table"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "timescaledb_main" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "unit": "short" }
+      },
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 27 },
+      "id": 6,
+      "options": { "pieType": "donut", "tooltip": { "mode": "single" } },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "timescaledb_main" },
+          "rawSql": "SELECT alert_type AS metric, COUNT(*) AS value\nFROM alerts\nWHERE $__timeFilter(ts)\nGROUP BY alert_type",
+          "refId": "A",
+          "format": "table"
+        }
+      ],
+      "title": "Alerts by Type",
+      "type": "piechart"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "timescaledb_main" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "custom": { "lineWidth": 2 }, "unit": "short" }
+      },
+      "gridPos": { "h": 6, "w": 16, "x": 8, "y": 27 },
+      "id": 7,
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "timescaledb_main" },
+          "rawSql": "SELECT\n  ts AS time,\n  alert_type AS metric,\n  1 AS value\nFROM alerts\nWHERE $__timeFilter(ts)\nORDER BY ts",
+          "refId": "A",
+          "format": "time_series"
+        }
+      ],
+      "title": "Alert Events Over Time",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 33 },
+      "id": 103,
+      "title": "⚙️ Pipeline Health",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "timescaledb_main" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "custom": { "lineWidth": 2 }, "unit": "reqps" }
+      },
+      "gridPos": { "h": 7, "w": 8, "x": 0, "y": 34 },
+      "id": 8,
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "timescaledb_main" },
+          "rawSql": "SELECT\n  ts AS time,\n  instance_id AS metric,\n  events_per_sec\nFROM pipeline_metrics\nWHERE $__timeFilter(ts)\nORDER BY ts",
+          "refId": "A",
+          "format": "time_series"
+        }
+      ],
+      "title": "Events/sec per Processor Instance",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "timescaledb_main" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "custom": { "lineWidth": 2 }, "unit": "short" }
+      },
+      "gridPos": { "h": 7, "w": 8, "x": 8, "y": 34 },
+      "id": 9,
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "timescaledb_main" },
+          "rawSql": "SELECT\n  ts AS time,\n  instance_id AS metric,\n  late_events\nFROM pipeline_metrics\nWHERE $__timeFilter(ts)\nORDER BY ts",
+          "refId": "A",
+          "format": "time_series"
+        }
+      ],
+      "title": "Late Events per Instance",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "timescaledb_main" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [
+            { "color": "green", "value": null },
+            { "color": "yellow", "value": 5 },
+            { "color": "red", "value": 20 }
+          ]},
+          "unit": "short",
+          "mappings": []
+        }
+      },
+      "gridPos": { "h": 7, "w": 8, "x": 16, "y": 34 },
+      "id": 10,
+      "options": { "reduceOptions": { "calcs": ["sum"] }, "orientation": "auto", "textMode": "auto", "colorMode": "background" },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "timescaledb_main" },
+          "rawSql": "SELECT\n  SUM(dlq_count) AS \"DLQ Messages\"\nFROM pipeline_metrics\nWHERE $__timeFilter(ts)",
+          "refId": "A",
+          "format": "table"
+        }
+      ],
+      "title": "DLQ Message Count",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "postgres", "uid": "timescaledb_main" },
+      "fieldConfig": {
+        "defaults": { "color": { "mode": "palette-classic" }, "custom": { "lineWidth": 2 }, "unit": "short" }
+      },
+      "gridPos": { "h": 7, "w": 24, "x": 0, "y": 41 },
+      "id": 11,
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "timescaledb_main" },
+          "rawSql": "SELECT\n  ts AS time,\n  instance_id || ':p' || partition AS metric,\n  consumer_lag\nFROM pipeline_metrics\nWHERE $__timeFilter(ts)\nORDER BY ts",
+          "refId": "A",
+          "format": "time_series"
+        }
+      ],
+      "title": "Consumer Lag per Instance/Partition",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 39,
+  "tags": ["inventory", "kafka", "streaming"],
+  "templating": { "list": [] },
+  "time": { "from": "now-15m", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Inventory Pipeline",
+  "uid": "inventory-pipeline-v1",
+  "version": 1
+}

@@ -1,0 +1,68 @@
+# docker-compose.yml
+# Docker mode: TimescaleDB + Grafana ONLY.
+# Kafka is NOT run here — it runs on the host (AGENTS.md §2 decision).
+#
+# Usage:
+#   docker compose up -d          # start
+#   docker compose down           # stop and remove containers (data survives in volumes)
+#   docker compose down -v        # also remove volumes (full reset)
+#
+# Environment variables are loaded from .env automatically by Compose.
+
+services:
+
+  # ── TimescaleDB ───────────────────────────────────────────────────────────────
+  timescaledb:
+    image: timescale/timescaledb:2.17.2-pg16   # pinned — no 'latest'
+    container_name: spa_timescaledb
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       ${DB_NAME:-inventory}
+      POSTGRES_USER:     ${DB_USER:-inventory}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-inventorydev}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - tsdb_data:/var/lib/postgresql/data
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-inventory} -d ${DB_NAME:-inventory}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  # ── Grafana ───────────────────────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana-oss:11.4.0   # pinned
+    container_name: spa_grafana
+    restart: unless-stopped
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    environment:
+      GF_SERVER_HTTP_PORT:    ${GRAFANA_PORT:-3000}
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      # Datasource env expansion used in provisioning files
+      TSDB_HOST: timescaledb   # inside the compose network
+      TSDB_PORT: "5432"
+      DB_NAME:   ${DB_NAME:-inventory}
+      DB_USER:   ${DB_USER:-inventory}
+      DB_PASSWORD: ${DB_PASSWORD:-inventorydev}
+      GRAFANA_DASHBOARD_PATH: /var/lib/grafana/dashboards
+    ports:
+      - "${GRAFANA_PORT:-3000}:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:${GRAFANA_PORT:-3000}/api/health | grep -q ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+volumes:
+  tsdb_data:
+  grafana_data:

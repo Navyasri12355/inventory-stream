@@ -1,0 +1,12 @@
+apiVersion: 1
+
+providers:
+  - name: Inventory Dashboards
+    type: file
+    disableDeletion: true
+    updateIntervalSeconds: 30
+    allowUiUpdates: false
+    options:
+      # GRAFANA_DASHBOARD_PATH is set by docker-compose.yml (docker mode)
+      # or by the native start script (native mode).
+      path: ${GRAFANA_DASHBOARD_PATH}
